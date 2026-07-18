@@ -9,7 +9,7 @@ class DbExecutor(private val sqliteBinary: String) {
 
     fun query(dbPath: String, sql: String): List<Map<String, String>> {
         validateSql(sql)
-        val result = RootShell.execSQLite(sqliteBinary, dbPath, "-header -separator '|' $sql")
+        val result = RootShell.execSQLiteQuery(sqliteBinary, dbPath, sql)
         if (!result.success) {
             throw DbException("Query failed: ${result.stderr}")
         }

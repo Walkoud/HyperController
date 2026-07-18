@@ -51,6 +51,11 @@ object RootShell {
         return exec("$sqliteBinary \"$dbPath\" \"$escapedSql\"")
     }
 
+    fun execSQLiteQuery(sqliteBinary: String, dbPath: String, sql: String): RootResult {
+        val escapedSql = sql.replace("'", "'\\''")
+        return exec("$sqliteBinary -header -separator '|' \"$dbPath\" \"$escapedSql\"")
+    }
+
     fun dbExists(dbPath: String): Boolean {
         val result = exec("[ -f \"$dbPath\" ] && echo 'EXISTS'")
         return result.success && result.stdout.trim() == "EXISTS"
