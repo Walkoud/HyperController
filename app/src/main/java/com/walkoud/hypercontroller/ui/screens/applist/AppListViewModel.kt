@@ -3,6 +3,7 @@ package com.walkoud.hypercontroller.ui.screens.applist
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.walkoud.hypercontroller.HyperControllerApp
 import com.walkoud.hypercontroller.core.db.DbExecutor
 import com.walkoud.hypercontroller.core.db.PowerKeeperDb
 import com.walkoud.hypercontroller.core.db.SecurityCenterDb
@@ -31,10 +32,12 @@ enum class SortMode { NAME_ASC, NAME_DESC, STATE, CATEGORY }
 
 class AppListViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val app = application as HyperControllerApp
+    private val sqlitePath = app.sqlite3Path
     private val packageUtils = PackageUtils(application)
-    private val executor = DbExecutor("sqlite3")
+    private val executor = DbExecutor(sqlitePath)
     private val backupManager = BackupManager()
-    private val powerKeeperDb = PowerKeeperDb(executor, backupManager, "sqlite3")
+    private val powerKeeperDb = PowerKeeperDb(executor, backupManager, sqlitePath)
     private val securityCenterDb = SecurityCenterDb(executor)
 
     private val _allApps = MutableStateFlow<List<AppInfo>>(emptyList())

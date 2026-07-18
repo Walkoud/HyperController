@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import com.walkoud.hypercontroller.HyperControllerApp
 import com.walkoud.hypercontroller.core.db.DbExecutor
 import com.walkoud.hypercontroller.core.db.PowerKeeperDb
 import com.walkoud.hypercontroller.core.model.BuiltinTemplates
@@ -17,9 +18,12 @@ import com.walkoud.hypercontroller.core.safety.SystemAppGuard
 
 class AutoConfigService : Service() {
 
-    private val executor = DbExecutor("sqlite3")
-    private val backupManager = BackupManager()
-    private val powerKeeperDb = PowerKeeperDb(executor, backupManager, "sqlite3")
+    private val sqlitePath: String by lazy {
+        (application as HyperControllerApp).sqlite3Path
+    }
+    private val executor by lazy { DbExecutor(sqlitePath) }
+    private val backupManager by lazy { BackupManager() }
+    private val powerKeeperDb by lazy { PowerKeeperDb(executor, backupManager, sqlitePath) }
 
     companion object {
         const val CHANNEL_ID = "hypercontroller_auto_config"

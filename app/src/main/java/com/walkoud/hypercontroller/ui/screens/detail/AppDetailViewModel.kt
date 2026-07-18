@@ -3,6 +3,7 @@ package com.walkoud.hypercontroller.ui.screens.detail
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.walkoud.hypercontroller.HyperControllerApp
 import com.walkoud.hypercontroller.core.db.DbExecutor
 import com.walkoud.hypercontroller.core.db.PowerKeeperDb
 import com.walkoud.hypercontroller.core.model.AppInfo
@@ -27,10 +28,12 @@ data class CloudConfigInfo(
 
 class AppDetailViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val app = application as HyperControllerApp
+    private val sqlitePath = app.sqlite3Path
     private val packageUtils = PackageUtils(application)
-    private val executor = DbExecutor("sqlite3")
+    private val executor = DbExecutor(sqlitePath)
     private val backupManager = BackupManager()
-    private val powerKeeperDb = PowerKeeperDb(executor, backupManager, "sqlite3")
+    private val powerKeeperDb = PowerKeeperDb(executor, backupManager, sqlitePath)
 
     private val _appInfo = MutableStateFlow<AppInfo?>(null)
     val appInfo: StateFlow<AppInfo?> = _appInfo.asStateFlow()

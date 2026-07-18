@@ -3,6 +3,7 @@ package com.walkoud.hypercontroller.ui.screens.templates
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.walkoud.hypercontroller.HyperControllerApp
 import com.walkoud.hypercontroller.core.db.DbExecutor
 import com.walkoud.hypercontroller.core.db.PowerKeeperDb
 import com.walkoud.hypercontroller.core.model.BuiltinTemplates
@@ -20,9 +21,11 @@ import org.json.JSONObject
 
 class TemplateViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val executor = DbExecutor("sqlite3")
+    private val app = application as HyperControllerApp
+    private val sqlitePath = app.sqlite3Path
+    private val executor = DbExecutor(sqlitePath)
     private val backupManager = BackupManager()
-    private val powerKeeperDb = PowerKeeperDb(executor, backupManager, "sqlite3")
+    private val powerKeeperDb = PowerKeeperDb(executor, backupManager, sqlitePath)
 
     private val _templates = MutableStateFlow<List<Template>>(emptyList())
     val templates: StateFlow<List<Template>> = _templates.asStateFlow()
