@@ -47,21 +47,36 @@ object RootShell {
     }
 
     fun execSQLite(sqliteBinary: String, dbPath: String, sql: String): RootResult {
-        val bin = sqliteBinary.trim()
-        val db = dbPath.trim()
-        val escapedSql = sql.replace("\"", "\\\"")
-        return exec("\"$bin\" \"$db\" \"$escapedSql\"")
+        val sqlFile = writeTempSql(sql)
+        return try {
+            exec("${sqliteBinary.trim()} ${dbPath.trim()} < $sqlFile")
+        } finally {
+            rmTempSql(sqlFile)
+        }
     }
 
     fun execSQLiteQuery(sqliteBinary: String, dbPath: String, sql: String): RootResult {
-        val bin = sqliteBinary.trim()
-        val db = dbPath.trim()
-        val escapedSql = sql.replace("\"", "\\\"")
-        return exec("\"$bin\" -header -separator '|' \"$db\" \"$escapedSql\"")
+        val sqlFile = writeTempSql(sql)
+        return try {
+            exec("${sqliteBinary.trim()} -header -separator PIPE ${dbPath.trim()} < $sqlFile")
+        } finally {
+            rmTempSql(sqlFile)
+        }
+    }
+
+    private fun writeTempSql(sql: String): String {
+        val tmp = "/data/local/tmp/hyperctrl_${System.nanoTime()}.sql"
+        val result = exec("echo '${sql.replace("'", "'\\''")}' > $tmp")
+        if (!result.success) throw RuntimeException("Failed to write temp SQL: ${result.stderr}")
+        return tmp
+    }
+
+    private fun rmTempSql(path: String) {
+        exec("rm -f $path")
     }
 
     fun dbExists(dbPath: String): Boolean {
-        val result = exec("[ -f \"$dbPath\" ] && echo 'EXISTS'")
+        val result = exec("test -f ${dbPath.trim()} && echo EXISTS")
         return result.success && result.stdout.trim() == "EXISTS"
     }
 
@@ -74,7 +89,7 @@ object RootShell {
     }
 
     fun verifyBinary(binaryPath: String): Boolean {
-        val result = exec("\"$binaryPath\" --version")
+        val result = exec("${binaryPath.trim()} --version")
         return result.success && result.stdout.isNotBlank()
     }
 

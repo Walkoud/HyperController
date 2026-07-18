@@ -69,11 +69,11 @@ class DbExecutor(private val sqliteBinary: String) {
         val lines = output.lines().filter { it.isNotBlank() }
         if (lines.size < 2) return emptyList()
 
-        val headers = lines[0].split("|")
+        val headers = lines[0].split("PIPE")
         val rows = lines.drop(1)
 
         return rows.map { row ->
-            val values = row.split("|")
+            val values = row.split("PIPE")
             headers.mapIndexed { index, header ->
                 header.trim() to (values.getOrNull(index)?.trim() ?: "")
             }.toMap()
