@@ -24,36 +24,12 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install NDK component
-        run: |
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "ndk;27.0.12077973" > /dev/null 2>&1
-          echo "NDK installed at $ANDROID_SDK_ROOT/ndk/27.0.12077973"
-
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Compile static sqlite3 for ARM64
+      - name: Verify sqlite3 binary
         run: |
-          # Download SQLite amalgamation source
-          VERSION="3530300"
-          curl -sL -o /tmp/sqlite.zip \
-            "https://www.sqlite.org/2026/sqlite-amalgamation-${VERSION}.zip" || \
-          curl -sL -o /tmp/sqlite.zip \
-            "https://www.sqlite.org/2025/sqlite-amalgamation-${VERSION}.zip"
-          unzip -q /tmp/sqlite.zip -d /tmp/sqlite-src
-          SRCDIR=$(ls -d /tmp/sqlite-src/sqlite-amalgamation-*)
-          echo "Source: $SRCDIR"
-
-          # Compile static sqlite3 using NDK
-          NDK_BIN="$ANDROID_SDK_ROOT/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          $NDK_BIN/aarch64-linux-android21-clang -static -O2 -g0 -s \
-            "$SRCDIR/sqlite3.c" "$SRCDIR/shell.c" \
-            -o /tmp/sqlite3 \
-            -lpthread -ldl -lm
-
-          file /tmp/sqlite3
-          # Copy into app resources
-          cp /tmp/sqlite3 app/src/main/res/raw/sqlite3
+          file app/src/main/res/raw/sqlite3
           ls -lh app/src/main/res/raw/sqlite3
 
       - name: Build debug APK
