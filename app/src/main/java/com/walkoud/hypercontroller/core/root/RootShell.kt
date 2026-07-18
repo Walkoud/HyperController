@@ -81,8 +81,8 @@ object RootShell {
     }
 
     fun dbExists(dbPath: String): Boolean {
-        val result = exec("test -f ${dbPath.trim()} && echo EXISTS")
-        return result.success && result.stdout.trim() == "EXISTS"
+        val result = exec("test -f ${dbPath.trim()}; echo RESULT=$?")
+        return result.stdout.contains("RESULT=0")
     }
 
     fun chmod(path: String, mode: String = "755"): Boolean {

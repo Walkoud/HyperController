@@ -51,8 +51,8 @@ class Sqlite3Manager(private val context: Context) {
     fun getPath(): String = targetPath
 
     fun isDeployed(): Boolean {
-        val check = RootShell.exec("[ -x \"$targetPath\" ] && echo 'OK'")
-        return check.success && check.stdout.trim() == "OK"
+        val check = RootShell.exec("test -x $targetPath; echo RESULT=$?")
+        return check.stdout.contains("RESULT=0")
     }
 
     data class DeployResult(
