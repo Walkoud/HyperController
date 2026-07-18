@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HyperController</string>
+    <string name="app_list_title">Applications</string>
+    <string name="templates_title">Templates</string>
+    <string name="settings_title">Paramètres</string>
+    <string name="search_hint">Rechercher une app…</string>
+    <string name="no_apps_found">Aucune application trouvée</string>
+    <string name="no_templates">Aucun template</string>
+    <string name="root_available">Root disponible</string>
+    <string name="root_unavailable">Root non disponible</string>
+    <string name="db_accessible">Bases de données accessibles</string>
+    <string name="db_inaccessible">Bases de données inaccessibles</string>
+    <string name="apply">Appliquer</string>
+    <string name="cancel">Annuler</string>
+    <string name="save">Sauvegarder</string>
+    <string name="delete">Supprimer</string>
+    <string name="refresh">Rafraîchir</string>
+    <string name="critical_app_warning">App système critique — modification bloquée</string>
+    <string name="sensitive_app_warning">App système sensible — soyez prudent</string>
+    <string name="auto_config_title">Auto-config</string>
+    <string name="auto_config_summary">Appliquer automatiquement un template aux nouvelles apps</string>
+    <string name="kill_after_apply">Kill after apply</string>
+    <string name="kill_after_apply_summary">Redémarre powerkeeper après chaque modification</string>
+    <string name="dark_theme">Thème sombre</string>
+    <string name="safety_log">Journal de sécurité</string>
+    <string name="about">À propos</string>
+    <string name="version">HyperController v1.0</string>
+    <string name="app_description">Contrôle avancé des restrictions MIUI/HyperOS</string>
+    <string name="no_restrict_label">Liberté totale</string>
+    <string name="miui_auto_label">Par défaut (MIUI)</string>
+    <string name="restrict_bg_label">Économie soft</string>
+    <string name="no_bg_label">Kill strict</string>
+
+    <!-- Notification channel -->
+    <string name="auto_config_channel_name">Auto-Config HyperController</string>
+    <string name="auto_config_channel_desc">Surveille les nouvelles apps pour appliquer les templates</string>
+    <string name="auto_config_notification_text">Auto-config actif — surveillance des nouvelles apps</string>
+</resources>

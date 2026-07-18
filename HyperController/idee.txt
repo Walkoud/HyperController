@@ -1,0 +1,151 @@
+App name : 
+
+HyperController
+com.walkoud.hypercontroller
+
+Application en anglais par défault
+C'est une app où ça demande le root (su)
+L'application controlle la db de com.miui.powerkeeper en gros
+
+Les gens détestent l'app Sécurité pour plusieurs raison :
+L'app restreint des applications comme Instagram et les gens ne reçoivent pas de notif
+On doit config un par un chaque application (on peut pas tout faire)
+On ne peut pas choisir les options par défault lorsque un nouveau app est installé
+
+=================
+
+
+Plusieurs page 
+
+Une page avec tout les app (sur chaque app on voit en dessous ou à côté la restriction etc)
+On peut sort, filter
+On peut select all etc puis appliquer des options
+
+
+
+Une page sur les options 
+root etc
+help manual
+Config Template (avec plusieurs Template où l'user peut en créer)
+Auto config ON ou OFF (auto config new installed apps  la Template s'applique)
+
+
+Si t'as trucs à mettre met le aussi
+
+
+
+=======================================
+
+
+
+
+
+Pour que ton option **Template Config** et ton **Auto Install** soient vraiment utiles à un power user (et pas juste des boutons gadgets), tu dois exploiter à fond ce que Xiaomi cache dans ses bases de données.
+
+Voici l'architecture des options que tu devrais intégrer dans **HyperController**, calée directement sur les entrailles de `powerkeeper` et `securitycenter` :
+
+---
+
+## 1. La section "Template Config" (Les Profils)
+
+Au lieu de faire chier l'utilisateur à régler chaque application une par une, tu lui proposes 3 ou 4 templates majeurs qui réécrivent les tables SQL en un clic.
+
+### A. Le Template "Unchained" (Pour les apps critiques)
+
+Ce template cible ta liste d'applications vitales (Messageries, GPS, Trackers).
+
+* **Ce qu'il applique en SQL :** Il injecte en masse la valeur `noRestrict` dans la colonne `bgControl` de la table `userTable` (`user_configure.db`) pour tous les packages sélectionnés.
+
+
+* **Le bonus Root :** Ton template peut aller modifier la table `GlobalFeatureTable` de `cloud_configure.db` pour ajouter ces applications à la liste `levelUtimateSpecialApps` ou `dozeWhiteListApps` (les listes d'exemption absolues de Xiaomi).
+
+
+
+### B. Le Template "Anti-Kill Global" (Mode Nucléaire)
+
+Pour ceux qui veulent complètement brider l'agressivité par défaut d'HyperOS sur tout le système.
+
+* **Ce qu'il applique en SQL :** Dans `cloud_configure.db` -> `GlobalFeatureTable` :
+
+
+* `featureStatus` = `false` (Désactive totalement les restrictions poussées par le cloud de Xiaomi).
+
+
+* `k_policy` = `0` ou moins (Au lieu de `896` qui est la politique de kill ultra agressive).
+
+
+* `miui_idle` et `miui_standby` = `false`.
+
+
+
+
+
+### C. Le Template "Thermal Unlock" (Mode Gamer / Performance)
+
+Xiaomi a tendance à dézinguer les performances ou à killer les tâches de fond dès que le téléphone tiédit.
+
+* **Ce qu'il applique en SQL :** Tu vas attaquer `thermal.db` et ses paramètres IEC (Intelligent Energy Conservation).
+
+
+* Modifier `"IECKillBatteryTemp": "44"` pour la passer à `"48"` ou `"50"` afin d'éviter que le système panique et ferme tout dès que la batterie atteint 44°C.
+
+
+
+
+
+---
+
+## 2. La fonctionnalité "Auto Install" (Le Setup Automatique)
+
+L'idée de l'**Auto Install**, c'est qu'au premier lancement de ton application (ou après une mise à jour d'un package), un script s'exécute en arrière-plan sans que l'utilisateur n'ait rien à faire.
+
+### Ce que doit faire l'Auto Install à l'initialisation :
+
+1. **Scan des packages installés :** Ton app liste les applications utilisateur présentes sur l'appareil.
+2. **Détection automatique :** Elle repère les applications de communication connues (WhatsApp, Telegram, Signal...).
+
+
+3. **Application automatique du template "Unchained" :**
+* Elle injecte directement les requêtes SQLite pour forcer ces apps en `noRestrict`.
+
+
+* Elle désactive le manager de mémoire agressif global (`miui_sentinel_memory_manager_enabled 0`).
+
+
+4. **Le grand ménage de fin (Obligatoire) :** L'Auto Install se termine systématiquement en exécutant :
+```bash
+pkill -f com.miui.powerkeeper
+pkill -f com.miui.securitycenter
+
+```
+
+
+Sans ça, les modifications restent en cache et le template ne s'applique pas tant que le téléphone n'a pas redémarré.
+
+
+
+---
+
+## 3. Le "Per-App Manager" (Pour fignoler)
+
+En dehors des templates automatiques, laisse une vue en liste simple pour chaque application avec 4 boutons calés sur les vraies valeurs d'HyperOS (`userTable`) :
+
+| Option dans ton UI | Valeur injectée dans `bgControl` | Comportement réel |
+| --- | --- | --- |
+| **Liberté totale** | `noRestrict` | L'application tourne sans restriction.
+
+ |
+| **Par défaut (MIUI)** | `miuiAuto` | Suit les caprices du cloud de Xiaomi.
+
+ |
+| **Économie soft** | `restrictBg` | Coupe la data/localisation après un délai.
+
+ |
+| **Kill strict** | `noBg` | Gèle ou tue l'application dès qu'elle passe derrière.
+
+ |
+
+
+
+
+
