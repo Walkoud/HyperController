@@ -2,6 +2,7 @@ package com.walkoud.hypercontroller
 
 import android.app.Application
 import android.util.Log
+import com.walkoud.hypercontroller.core.root.RootChecker
 import com.walkoud.hypercontroller.core.root.Sqlite3Manager
 
 class HyperControllerApp : Application() {
@@ -18,6 +19,9 @@ class HyperControllerApp : Application() {
         } else {
             Log.d("HyperCtrl", "sqlite3 already deployed at ${sqlite3Manager.getPath()}")
         }
+
+        val check = RootChecker.check()
+        Log.d("HyperCtrl", "STARTUP check: hasRoot=${check.hasRoot} suAvail=${check.suAvailable} pkDb=${check.powerKeeperDbAccessible} scDb=${check.securityCenterDbAccessible} sqliteOk=${check.sqliteAvailable} ver='${check.miuiVersion}' errors=${check.errors}")
     }
 
     /** Returns the deployed sqlite3 path, or "sqlite3" as fallback */

@@ -1,6 +1,7 @@
 package com.walkoud.hypercontroller.ui.screens.settings
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.walkoud.hypercontroller.core.root.RootChecker
@@ -39,6 +40,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             _settings.value = _settings.value.copy(isLoading = true)
             val result = RootChecker.check()
+            Log.d("HyperCtrl", "checkRoot result: hasRoot=${result.hasRoot} suAvail=${result.suAvailable} pkDb=${result.powerKeeperDbAccessible} scDb=${result.securityCenterDbAccessible} sqliteOk=${result.sqliteAvailable} ver=${result.miuiVersion} errors=${result.errors}")
             _settings.value = _settings.value.copy(
                 rootAvailable = result.hasRoot,
                 rootChecked = true,

@@ -2,6 +2,7 @@ package com.walkoud.hypercontroller.core.root
 
 import android.util.Log
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
 
@@ -18,7 +19,8 @@ object RootShell {
 
     fun exec(command: String): RootResult {
         return try {
-            val process = ProcessBuilder("su", "-c", command)
+            val scriptFile = writeScript(command)
+            val process = ProcessBuilder("su", "--mount-master", "-c", "/system/bin/sh $scriptFile")
                 .redirectErrorStream(false)
                 .start()
 
@@ -40,6 +42,7 @@ object RootShell {
                 if (!it.success) {
                     Log.w("HyperCtrl", "exec FAILED [$exitCode]: cmd='${command.take(80)}' stderr='${it.stderr.take(120)}'")
                 }
+                File(scriptFile).delete()
             }
         } catch (e: Exception) {
             RootResult(
@@ -70,19 +73,22 @@ object RootShell {
     }
 
     private fun writeTempSql(sql: String): String {
-        val tmp = "/data/local/tmp/hyperctrl_${System.nanoTime()}.sql"
-        val result = exec("echo '${sql.replace("'", "'\\''")}' > $tmp")
-        if (!result.success) throw RuntimeException("Failed to write temp SQL: ${result.stderr}")
+        val tmp = "/data/data/com.walkoud.hypercontroller/files/hyperctrl_${System.nanoTime()}.sql"
+        File(tmp).writeText(sql)
         return tmp
     }
 
     private fun rmTempSql(path: String) {
-        exec("rm -f $path")
+        File(path).delete()
     }
 
     fun dbExists(dbPath: String): Boolean {
-        val result = exec("test -f ${dbPath.trim()}; echo RESULT=$?")
-        return result.stdout.contains("RESULT=0")
+        val result = exec("${getSqlitePath()} ${dbPath.trim()} .tables")
+        return result.success
+    }
+
+    private fun getSqlitePath(): String {
+        return "/data/data/com.walkoud.hypercontroller/files/sqlite3"
     }
 
     fun chmod(path: String, mode: String = "755"): Boolean {
@@ -110,5 +116,14 @@ object RootShell {
 
     private fun readStream(stream: java.io.InputStream): String {
         return BufferedReader(InputStreamReader(stream)).readText().trim()
+    }
+
+    private fun writeScript(command: String): String {
+        val tmp = "/data/data/com.walkoud.hypercontroller/files/hyperctrl_exec_${System.nanoTime()}.sh"
+        val f = File(tmp)
+        f.writeText(command)
+        f.setReadable(true, false)
+        f.setExecutable(true, false)
+        return tmp
     }
 }

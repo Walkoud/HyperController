@@ -71,8 +71,7 @@ object RootChecker {
 
     private fun findSu(): String? {
         for (path in SU_PATHS) {
-            val result = RootShell.exec("test -x $path; echo RESULT=$?")
-            if (result.stdout.contains("RESULT=0")) return path
+            if (RootShell.exec("ls $path").success) return path
         }
         return null
     }
