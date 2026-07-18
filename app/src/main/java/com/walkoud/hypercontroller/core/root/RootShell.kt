@@ -1,5 +1,6 @@
 package com.walkoud.hypercontroller.core.root
 
+import android.util.Log
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
@@ -35,7 +36,11 @@ object RootShell {
                 stdout = stdout,
                 stderr = stderr,
                 exitCode = exitCode
-            )
+            ).also {
+                if (!it.success) {
+                    Log.w("HyperCtrl", "exec FAILED [$exitCode]: cmd='${command.take(80)}' stderr='${it.stderr.take(120)}'")
+                }
+            }
         } catch (e: Exception) {
             RootResult(
                 success = false,

@@ -1,5 +1,7 @@
 package com.walkoud.hypercontroller.core.root
 
+import android.util.Log
+
 data class RootCheckResult(
     val hasRoot: Boolean,
     val suAvailable: Boolean,
@@ -45,6 +47,8 @@ object RootChecker {
 
         val pkDbOk = RootShell.dbExists("$POWERKEEPER_DB_BASE/user_configure.db")
         val scDbOk = RootShell.dbExists("$SECURITYCENTER_DB_BASE/auto_task.db")
+
+        Log.d("HyperCtrl", "check: pkDbOk=$pkDbOk scDbOk=$scDbOk sqliteOk=$sqliteOk sqlitePath=$sqlitePath")
 
         val miuiVer = detectMiuiVersion()
 
