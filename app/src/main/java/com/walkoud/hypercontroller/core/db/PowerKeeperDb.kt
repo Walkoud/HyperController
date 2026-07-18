@@ -2,6 +2,7 @@ package com.walkoud.hypercontroller.core.db
 
 import com.walkoud.hypercontroller.core.model.AppRestriction
 import com.walkoud.hypercontroller.core.model.RestrictionState
+import com.walkoud.hypercontroller.core.root.RootShell
 import com.walkoud.hypercontroller.core.safety.SafetyValidator
 import com.walkoud.hypercontroller.core.safety.SystemAppGuard
 import com.walkoud.hypercontroller.core.safety.BackupManager
