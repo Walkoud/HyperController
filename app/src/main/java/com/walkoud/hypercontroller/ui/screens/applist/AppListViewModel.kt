@@ -1,6 +1,7 @@
 package com.walkoud.hypercontroller.ui.screens.applist
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.walkoud.hypercontroller.HyperControllerApp
@@ -33,7 +34,7 @@ enum class SortMode { NAME_ASC, NAME_DESC, STATE, CATEGORY }
 class AppListViewModel(application: Application) : AndroidViewModel(application) {
 
     private val app = application as HyperControllerApp
-    private val sqlitePath = app.sqlite3Path
+    private val sqlitePath = app.sqlite3Path.also { Log.d("HyperCtrl", "sqlite3 path: '$it'") }
     private val packageUtils = PackageUtils(application)
     private val executor = DbExecutor(sqlitePath)
     private val backupManager = BackupManager()

@@ -47,13 +47,17 @@ object RootShell {
     }
 
     fun execSQLite(sqliteBinary: String, dbPath: String, sql: String): RootResult {
-        val escapedSql = sql.replace("'", "'\\''")
-        return exec("$sqliteBinary \"$dbPath\" \"$escapedSql\"")
+        val bin = sqliteBinary.trim()
+        val db = dbPath.trim()
+        val escapedSql = sql.replace("\"", "\\\"")
+        return exec("\"$bin\" \"$db\" \"$escapedSql\"")
     }
 
     fun execSQLiteQuery(sqliteBinary: String, dbPath: String, sql: String): RootResult {
-        val escapedSql = sql.replace("'", "'\\''")
-        return exec("$sqliteBinary -header -separator '|' \"$dbPath\" \"$escapedSql\"")
+        val bin = sqliteBinary.trim()
+        val db = dbPath.trim()
+        val escapedSql = sql.replace("\"", "\\\"")
+        return exec("\"$bin\" -header -separator '|' \"$db\" \"$escapedSql\"")
     }
 
     fun dbExists(dbPath: String): Boolean {

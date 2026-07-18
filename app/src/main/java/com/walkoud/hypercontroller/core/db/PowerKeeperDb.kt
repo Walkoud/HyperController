@@ -73,16 +73,21 @@ class PowerKeeperDb(
 
     /** Récupère toutes les restrictions de toutes les apps */
     fun getAllRestrictions(): Map<String, AppRestriction> {
-        val sql = "SELECT pkgName, bgControl, bgDelayMin, lastConfigured FROM userTable WHERE userId=0"
-        val rows = executor.query(USER_DB, sql)
-        return rows.mapNotNull { row ->
-            val pkg = row["pkgName"] ?: return@mapNotNull null
-            pkg to AppRestriction(
-                bgControl = row["bgControl"] ?: "miuiAuto",
-                bgDelayMin = (row["bgDelayMin"] ?: "-1").toIntOrNull() ?: -1,
-                lastConfigured = (row["lastConfigured"] ?: "0").toLongOrNull() ?: 0
-            )
-        }.toMap()
+        if (!RootShell.dbExists(USER_DB)) return emptyMap()
+        return try {
+            val sql = "SELECT pkgName, bgControl, bgDelayMin, lastConfigured FROM userTable WHERE userId=0"
+            val rows = executor.query(USER_DB, sql)
+            rows.mapNotNull { row ->
+                val pkg = row["pkgName"] ?: return@mapNotNull null
+                pkg to AppRestriction(
+                    bgControl = row["bgControl"] ?: "miuiAuto",
+                    bgDelayMin = (row["bgDelayMin"] ?: "-1").toIntOrNull() ?: -1,
+                    lastConfigured = (row["lastConfigured"] ?: "0").toLongOrNull() ?: 0
+                )
+            }.toMap()
+        } catch (e: DbException) {
+            emptyMap()
+        }
     }
 
     /** Récupère la config cloud d'une app (cloudAppTable) */
