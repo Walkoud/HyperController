@@ -11,6 +11,9 @@ class HyperControllerApp : Application() {
     override fun onCreate() {
         super.onCreate()
         sqlite3Manager = Sqlite3Manager(this)
+        if (!sqlite3Manager.isDeployed()) {
+            sqlite3Manager.deploy()
+        }
     }
 
     /** Returns the deployed sqlite3 path, or "sqlite3" as fallback */
