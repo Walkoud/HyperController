@@ -38,20 +38,15 @@ object RootChecker {
 
         val suPath = findSu()
         if (suPath == null) {
-            return RootCheckResult(
-                hasRoot = true,
-                suAvailable = false,
-                sqliteAvailable = false,
-                errors = listOf("su binary not found at known paths")
-            )
+            errors.add("su binary not found at known paths (KernelSU may use kernel-injected su)")
         }
 
         val (sqliteOk, sqlitePath) = findSqlite(suggestedSqlitePath)
 
-        val pkDbOk = if (hasRoot) RootShell.dbExists("$POWERKEEPER_DB_BASE/user_configure.db") else false
-        val scDbOk = if (hasRoot) RootShell.dbExists("$SECURITYCENTER_DB_BASE/auto_task.db") else false
+        val pkDbOk = RootShell.dbExists("$POWERKEEPER_DB_BASE/user_configure.db")
+        val scDbOk = RootShell.dbExists("$SECURITYCENTER_DB_BASE/auto_task.db")
 
-        val miuiVer = if (hasRoot) detectMiuiVersion() else ""
+        val miuiVer = detectMiuiVersion()
 
         return RootCheckResult(
             hasRoot = hasRoot,
@@ -72,7 +67,7 @@ object RootChecker {
 
     private fun findSu(): String? {
         for (path in SU_PATHS) {
-            val result = RootShell.exec("[ -x \"$path\" ] && echo 'OK'")
+            val result = RootShell.exec("test -x $path && echo OK")
             if (result.success && result.stdout.trim() == "OK") return path
         }
         return null
