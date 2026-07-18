@@ -1,6 +1,5 @@
 package com.walkoud.hypercontroller.core.util
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -35,17 +34,6 @@ class PackageUtils(private val context: Context) {
         }
     }
 
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
-    fun hasNotificationPermission(pkgName: String): Boolean {
-        return try {
-            val pm = context.packageManager
-            val info = pm.getApplicationInfo(pkgName, 0)
-            (info.flags and ApplicationInfo.FLAG_NOTIFICATION_PERMISSION) != 0
-        } catch (_: Exception) {
-            false
-        }
-    }
-
     fun buildAppInfo(
         pkgName: String,
         restriction: RestrictionState,
@@ -63,7 +51,7 @@ class PackageUtils(private val context: Context) {
             bgDelayMin = bgDelayMin,
             powerStateId = powerStateId,
             kPolicy = kPolicy,
-            hasNotificationPermission = hasNotificationPermission(pkgName)
+            hasNotificationPermission = false
         )
     }
 

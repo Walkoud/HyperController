@@ -28,7 +28,7 @@ fun TemplateEditor(
     var name by remember { mutableStateOf(template?.name ?: "") }
     var description by remember { mutableStateOf(template?.description ?: "") }
     var target by remember { mutableStateOf(template?.target ?: TemplateTarget.SELECTED_PACKAGES) }
-    var actions by remember { mutableStateOf(template?.actions?.toMutableList() ?: mutableListOf()) }
+    var actions by remember { mutableStateOf(template?.actions ?: emptyList<TemplateAction>()) }
 
     Scaffold(
         topBar = {
@@ -95,13 +95,15 @@ fun TemplateEditor(
             actions.forEachIndexed { index, action ->
                 ActionCard(
                     action = action,
-                    onDelete = { actions = actions.toMutableList().also { it.removeAt(index) } }
+                    onDelete = {
+                        actions = actions.toMutableList().also { it.removeAt(index) }
+                    }
                 )
             }
 
-            ActionAddMenu(onAdd = { action ->
-                actions = actions.toMutableList().also { it.add(action) }
-            })
+            AddActionButton { newAction ->
+                actions = actions + newAction
+            }
 
             Spacer(Modifier.height(32.dp))
         }
@@ -135,7 +137,7 @@ private fun ActionCard(
 }
 
 @Composable
-private fun ActionAddMenu(onAdd: (TemplateAction) -> Unit) {
+private fun AddActionButton(onAdd: (TemplateAction) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
 
     Column {

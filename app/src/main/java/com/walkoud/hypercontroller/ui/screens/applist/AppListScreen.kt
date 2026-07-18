@@ -50,9 +50,10 @@ fun AppListScreen(
         floatingActionButton = {
             if (selectedPackages.isNotEmpty()) {
                 ExtendedFloatingActionButton(
-                    onClick = { showBatchDialog = true },
-                    text = { Text("${selectedPackages.size} sélectionnée(s)") }
-                )
+                    onClick = { showBatchDialog = true }
+                ) {
+                    Text("${selectedPackages.size} sélectionnée(s)")
+                }
             }
         }
     ) { padding ->

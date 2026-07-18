@@ -1,5 +1,7 @@
 package com.walkoud.hypercontroller.ui.screens.applist
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,10 +19,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -57,7 +63,7 @@ fun AppListItem(
 
             if (app.icon != null) {
                 Icon(
-                    painter = rememberImagePainter(app.icon),
+                    painter = rememberDrawablePainter(app.icon),
                     contentDescription = null,
                     modifier = Modifier.size(40.dp),
                     tint = Color.Unspecified
@@ -129,20 +135,17 @@ fun StateBadge(state: RestrictionState) {
     }
 }
 
-private fun rememberImagePainter(icon: android.graphics.drawable.Drawable): androidx.compose.ui.graphics.painter.Painter {
-    return androidx.compose.ui.graphics.painter.BitmapPainter(
-        androidx.compose.ui.graphics.ImageBitmap.imageFromDrawable(icon)
-    )
-}
-
-private fun androidx.compose.ui.graphics.ImageBitmap.Companion.imageFromDrawable(drawable: android.graphics.drawable.Drawable): androidx.compose.ui.graphics.ImageBitmap {
-    val bitmap = android.graphics.Bitmap.createBitmap(
-        drawable.intrinsicWidth.coerceAtLeast(1),
-        drawable.intrinsicHeight.coerceAtLeast(1),
-        android.graphics.Bitmap.Config.ARGB_8888
-    )
-    val canvas = android.graphics.Canvas(bitmap)
-    drawable.setBounds(0, 0, canvas.width, canvas.height)
-    drawable.draw(canvas)
-    return bitmap.asImageBitmap()
+@Composable
+private fun rememberDrawablePainter(drawable: android.graphics.drawable.Drawable): Painter {
+    return remember(drawable) {
+        val bitmap = Bitmap.createBitmap(
+            drawable.intrinsicWidth.coerceAtLeast(1),
+            drawable.intrinsicHeight.coerceAtLeast(1),
+            Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        BitmapPainter(bitmap.asImageBitmap())
+    }
 }
