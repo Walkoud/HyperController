@@ -114,6 +114,35 @@ object RootShell {
         return result.success || result.exitCode == 1
     }
 
+    /**
+     * Certaines ROM (MIUI/HyperOS/Thanox) refusent par défaut le démarrage d'un
+     * foreground service depuis l'arrière-plan. L'app ayant le root, on s'octroie
+     * les app-ops nécessaires via su pour que la notification persistante fonctionne
+     * sans intervention manuelle via adb.
+     */
+    fun grantBackgroundAppOps(packageName: String): Boolean {
+        // Les opérations MIUI/Thanox (MIUIOP) ne sont pas reconnues par leur nom
+        // textuel via 'appops set' — il faut utiliser leur code numérique.
+        val ops = listOf(
+            "START_FOREGROUND",
+            "RUN_IN_BACKGROUND",
+            "RUN_ANY_IN_BACKGROUND",
+            "10022",  // MIUIOP: start FGS from background
+            "10048"   // MIUIOP: autorise exécution en arrière-plan
+        )
+        var allOk = true
+        for (op in ops) {
+            val result = exec("appops set $packageName $op allow")
+            if (!result.success) {
+                allOk = false
+                Log.w("HyperCtrl", "grant appop échoué: $op -> ${result.stderr.take(80)}")
+            }
+        }
+        // Exclusion de la liste Doze (deviceidle whitelist)
+        exec("dumpsys deviceidle whitelist +$packageName")
+        return allOk
+    }
+
     private fun readStream(stream: java.io.InputStream): String {
         return BufferedReader(InputStreamReader(stream)).readText().trim()
     }

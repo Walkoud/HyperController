@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,7 +38,7 @@ fun TemplateScreen(
                 title = { Text("Templates") },
                 actions = {
                     IconButton(onClick = onCreateTemplate) {
-                        Icon(Icons.Default.Add, contentDescription = "Nouveau template")
+                        Icon(Icons.Default.Add, contentDescription = "New template")
                     }
                 }
             )
@@ -60,10 +61,10 @@ fun TemplateScreen(
             if (templates.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Aucun template", style = MaterialTheme.typography.bodyLarge)
+                        Text("No template", style = MaterialTheme.typography.bodyLarge)
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            "Créez un template pour appliquer des configurations en un clic",
+                            "Create a template to apply configurations in one tap",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -92,12 +93,12 @@ fun TemplateScreen(
     showApplyDialog?.let { template ->
         AlertDialog(
             onDismissRequest = { showApplyDialog = null },
-            title = { Text("Appliquer '${template.name}'") },
+            title = { Text("Apply '${template.name}'") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(template.description)
                     Text(
-                        "${template.actions.size} action(s) seront exécutées",
+                        "${template.actions.size} action(s) will be executed",
                         style = MaterialTheme.typography.bodySmall
                     )
                     if (isLoading) {
@@ -112,10 +113,10 @@ fun TemplateScreen(
                         showApplyDialog = null
                     },
                     enabled = !isLoading
-                ) { Text("Appliquer") }
+                ) { Text("Apply") }
             },
             dismissButton = {
-                TextButton(onClick = { showApplyDialog = null }) { Text("Annuler") }
+                TextButton(onClick = { showApplyDialog = null }) { Text("Cancel") }
             }
         )
     }
@@ -146,7 +147,7 @@ private fun TemplateCard(
                     )
                     if (template.isBuiltin) {
                         Text(
-                            "Intégré",
+                            "Built-in",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -155,11 +156,14 @@ private fun TemplateCard(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onApply) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = "Appliquer")
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Apply")
                     }
                     if (!template.isBuiltin) {
+                        IconButton(onClick = onEdit) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                        }
                         IconButton(onClick = onDelete) {
-                            Icon(Icons.Default.Delete, contentDescription = "Supprimer")
+                            Icon(Icons.Default.Delete, contentDescription = "Delete")
                         }
                     }
                 }
@@ -175,7 +179,7 @@ private fun TemplateCard(
             }
 
             Text(
-                "Cible: ${template.target.label} • ${template.actions.size} action(s)",
+                "Target: ${template.target.label} • ${template.actions.size} action(s)",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp)

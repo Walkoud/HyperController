@@ -8,13 +8,16 @@ import com.walkoud.hypercontroller.core.db.DbExecutor
 import com.walkoud.hypercontroller.core.db.PowerKeeperDb
 import com.walkoud.hypercontroller.core.model.AppInfo
 import com.walkoud.hypercontroller.core.model.RestrictionState
+import com.walkoud.hypercontroller.core.root.RootShell
 import com.walkoud.hypercontroller.core.safety.BackupManager
 import com.walkoud.hypercontroller.core.safety.SystemAppGuard
 import com.walkoud.hypercontroller.core.util.PackageUtils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class CloudConfigInfo(
     val bgData: String? = null,
@@ -53,6 +56,8 @@ class AppDetailViewModel(application: Application) : AndroidViewModel(applicatio
     private val _operationResult = MutableStateFlow<String?>(null)
     val operationResult: StateFlow<String?> = _operationResult.asStateFlow()
 
+    private val prefs = application.getSharedPreferences("settings", 0)
+
     private var currentPkgName: String = ""
 
     fun loadPackage(pkgName: String) {
@@ -60,43 +65,62 @@ class AppDetailViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val restriction = powerKeeperDb.getAppRestriction(pkgName)
-                val cloudRaw = powerKeeperDb.getCloudAppConfig(pkgName)
-
-                _appInfo.value = packageUtils.buildAppInfo(
-                    pkgName = pkgName,
-                    restriction = RestrictionState.fromBgControl(restriction?.bgControl ?: "miuiAuto"),
-                    bgDelayMin = restriction?.bgDelayMin ?: -1,
-                    powerStateId = cloudRaw["power_state_id"]?.toIntOrNull() ?: -1,
-                    kPolicy = cloudRaw["k_policy"]?.toIntOrNull() ?: -1
-                )
-                _cloudConfig.value = CloudConfigInfo(
-                    bgData = cloudRaw["bgData"],
-                    bgLocation = cloudRaw["bgLocation"],
-                    kDelay = cloudRaw["k_delay"],
-                    sDelay = cloudRaw["s_delay"],
-                    kPolicy = cloudRaw["k_policy"],
-                    powerStateId = cloudRaw["power_state_id"],
-                    iDelay = cloudRaw["i_delay"]
-                )
-                _isCritical.value = SystemAppGuard.isCritical(pkgName)
-                _isSensitive.value = SystemAppGuard.isSensitive(pkgName)
+                val (info, cloud, critical, sensitive) = withContext(Dispatchers.IO) {
+                    val restriction = powerKeeperDb.getAppRestriction(pkgName)
+                    val cloudRaw = powerKeeperDb.getCloudAppConfig(pkgName)
+                    val appInfo = packageUtils.buildAppInfo(
+                        pkgName = pkgName,
+                        restriction = RestrictionState.fromBgControl(restriction?.bgControl ?: "miuiAuto"),
+                        bgDelayMin = restriction?.bgDelayMin ?: -1,
+                        powerStateId = cloudRaw["power_state_id"]?.toIntOrNull() ?: -1,
+                        kPolicy = cloudRaw["k_policy"]?.toIntOrNull() ?: -1
+                    )
+                    val cloudInfo = CloudConfigInfo(
+                        bgData = cloudRaw["bgData"],
+                        bgLocation = cloudRaw["bgLocation"],
+                        kDelay = cloudRaw["k_delay"],
+                        sDelay = cloudRaw["s_delay"],
+                        kPolicy = cloudRaw["k_policy"],
+                        powerStateId = cloudRaw["power_state_id"],
+                        iDelay = cloudRaw["i_delay"]
+                    )
+                    data class Result(val info: AppInfo, val cloud: CloudConfigInfo, val critical: Boolean, val sensitive: Boolean)
+                    Result(appInfo, cloudInfo, SystemAppGuard.isCritical(pkgName), SystemAppGuard.isSensitive(pkgName))
+                }
+                _appInfo.value = info
+                _cloudConfig.value = cloud
+                _isCritical.value = critical
+                _isSensitive.value = sensitive
             } catch (e: Exception) {
-                _operationResult.value = "Erreur: ${e.message}"
+                _operationResult.value = "Error: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun setRestriction(state: RestrictionState, delayMin: Int) {
+    fun setRestriction(state: RestrictionState, delayMin: Int, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                powerKeeperDb.setAppRestriction(currentPkgName, state, delayMin)
+                withContext(Dispatchers.IO) {
+                    powerKeeperDb.setAppRestriction(currentPkgName, state, delayMin)
+
+                    val killAfterApply = prefs.getBoolean("kill_after_apply", true)
+                    if (killAfterApply) {
+                        // Kill powerkeeper so it re-reads the DB
+                        RootShell.pkill("com.miui.powerkeeper")
+                    }
+
+                    // If the user chose Kill strict, also kill the target app
+                    if (state == RestrictionState.NO_BG) {
+                        RootShell.exec("am force-stop $currentPkgName")
+                    }
+                }
                 loadPackage(currentPkgName)
-                _operationResult.value = "Restriction appliquée: ${state.label}"
+                _operationResult.value = "Restriction applied: ${state.label}"
+                onSuccess()
             } catch (e: Exception) {
-                _operationResult.value = "Erreur: ${e.message}"
+                _operationResult.value = "Error: ${e.message}"
             }
         }
     }

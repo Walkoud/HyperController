@@ -1,10 +1,10 @@
 package com.walkoud.hypercontroller.core.model
 
 enum class RestrictionState(val bgControl: String, val label: String, val description: String) {
-    NO_RESTRICT("noRestrict", "Liberté totale", "Aucune restriction — l'app peut tout faire"),
-    MIUI_AUTO("miuiAuto", "Par défaut (MIUI)", "Géré automatiquement par MIUI"),
-    RESTRICT_BG("restrictBg", "Économie soft", "Coupe data/location en arrière-plan, garde l'app en mémoire"),
-    NO_BG("noBg", "Kill strict", "Tue ou gèle l'app en arrière-plan immédiatement");
+    NO_RESTRICT("noRestrict", "Full freedom", "No restriction — the app can do anything"),
+    MIUI_AUTO("miuiAuto", "Default (MIUI)", "Managed automatically by MIUI"),
+    RESTRICT_BG("restrictBg", "Soft saver", "Cuts data/location in background, keeps the app in memory"),
+    NO_BG("noBg", "Strict kill", "Kills or freezes the app in the background immediately");
 
     companion object {
         fun fromBgControl(value: String): RestrictionState {

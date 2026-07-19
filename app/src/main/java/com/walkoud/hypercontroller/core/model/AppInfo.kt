@@ -22,13 +22,13 @@ data class AppInfo(
 }
 
 enum class AppCategory(val label: String) {
-    COMMUNICATION("Messagerie"),
-    SOCIAL("Réseaux sociaux"),
-    GAME("Jeux"),
+    COMMUNICATION("Messaging"),
+    SOCIAL("Social"),
+    GAME("Games"),
     MAPS_NAV("Navigation"),
-    MUSIC("Musique"),
-    VIDEO("Vidéo"),
-    TOOLS("Outils"),
-   BENCHMARK("Benchmark"),
-    OTHER("Autre")
+    MUSIC("Music"),
+    VIDEO("Video"),
+    TOOLS("Tools"),
+    BENCHMARK("Benchmark"),
+    OTHER("Other")
 }

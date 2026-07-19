@@ -91,9 +91,9 @@ class TemplateViewModel(application: Application) : AndroidViewModel(application
                         }
                     }
                 }
-                _applyResult.value = "Template '${template.name}' appliqué ($appliedCount actions)"
+                _applyResult.value = "Template '${template.name}' applied ($appliedCount actions)"
             } catch (e: Exception) {
-                _applyResult.value = "Erreur: ${e.message}"
+                _applyResult.value = "Error: ${e.message}"
             } finally {
                 _isLoading.value = false
             }

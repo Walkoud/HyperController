@@ -54,7 +54,12 @@ class PowerKeeperDb(
     /** Applique une restriction à plusieurs apps en batch */
     fun setBatchRestriction(packages: Set<String>, state: RestrictionState, delayMin: Int) {
         val filtered = SystemAppGuard.filterCritical(packages)
-        if (filtered.isEmpty()) return
+        if (filtered.isEmpty()) {
+            android.util.Log.d("HyperCtrl", "setBatchRestriction: aucun package après filtrage")
+            return
+        }
+
+        android.util.Log.d("HyperCtrl", "setBatchRestriction: ${filtered.size} packages, state=${state.bgControl}, delay=$delayMin")
 
         require(SafetyValidator.validateBgControl(state.bgControl))
         require(SafetyValidator.validateDelay(delayMin))
@@ -69,7 +74,9 @@ class PowerKeeperDb(
             """.trimIndent()
         }
 
+        android.util.Log.d("HyperCtrl", "setBatchRestriction: exécution de ${sqlList.size} requêtes SQL")
         executor.execSQLBatch(USER_DB, sqlList)
+        android.util.Log.d("HyperCtrl", "setBatchRestriction: terminé")
     }
 
     /** Récupère toutes les restrictions de toutes les apps */

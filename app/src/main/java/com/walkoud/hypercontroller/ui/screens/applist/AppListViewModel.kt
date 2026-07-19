@@ -1,7 +1,6 @@
 package com.walkoud.hypercontroller.ui.screens.applist
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.walkoud.hypercontroller.HyperControllerApp
@@ -14,27 +13,39 @@ import com.walkoud.hypercontroller.core.model.RestrictionState
 import com.walkoud.hypercontroller.core.safety.BackupManager
 import com.walkoud.hypercontroller.core.safety.SystemAppGuard
 import com.walkoud.hypercontroller.core.util.PackageUtils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class FilterOptions(
     val searchQuery: String = "",
     val category: AppCategory? = null,
     val restriction: RestrictionState? = null,
-    val showSystemApps: Boolean = true,
+    val showSystemApps: Boolean = false,
     val showUserApps: Boolean = true,
     val sortBy: SortMode = SortMode.NAME_ASC
 )
 
-enum class SortMode { NAME_ASC, NAME_DESC, STATE, CATEGORY }
+enum class SortMode {
+    NAME_ASC, NAME_DESC, STATE, CATEGORY;
+
+    val label: String
+        get() = when (this) {
+            NAME_ASC -> "Name (A→Z)"
+            NAME_DESC -> "Name (Z→A)"
+            STATE -> "Restriction state"
+            CATEGORY -> "Category"
+        }
+}
 
 class AppListViewModel(application: Application) : AndroidViewModel(application) {
 
     private val app = application as HyperControllerApp
-    private val sqlitePath = app.sqlite3Path.also { Log.d("HyperCtrl", "sqlite3 path: '$it'") }
+    private val sqlitePath = app.sqlite3Path
     private val packageUtils = PackageUtils(application)
     private val executor = DbExecutor(sqlitePath)
     private val backupManager = BackupManager()
@@ -70,22 +81,24 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
             _isLoading.value = true
             _error.value = null
             try {
-                val allRestrictions = powerKeeperDb.getAllRestrictions()
-                val allInstalled = packageUtils.getInstalledApps()
+                val apps = withContext(Dispatchers.IO) {
+                    val allRestrictions = powerKeeperDb.getAllRestrictions()
+                    val allInstalled = packageUtils.getInstalledApps()
 
-                val apps = allInstalled.map { appInfo ->
-                    val restriction = allRestrictions[appInfo.packageName]
-                    packageUtils.buildAppInfo(
-                        pkgName = appInfo.packageName,
-                        restriction = restriction?.let {
-                            RestrictionState.fromBgControl(it.bgControl)
-                        } ?: RestrictionState.MIUI_AUTO,
-                        bgDelayMin = restriction?.bgDelayMin ?: -1
-                    )
+                    allInstalled.map { appInfo ->
+                        val restriction = allRestrictions[appInfo.packageName]
+                        packageUtils.buildAppInfo(
+                            pkgName = appInfo.packageName,
+                            restriction = restriction?.let {
+                                RestrictionState.fromBgControl(it.bgControl)
+                            } ?: RestrictionState.MIUI_AUTO,
+                            bgDelayMin = restriction?.bgDelayMin ?: -1
+                        )
+                    }
                 }
                 _allApps.value = apps.sortedBy { it.appName.lowercase() }
             } catch (e: Exception) {
-                _error.value = "Erreur: ${e.message}"
+                _error.value = "Error: ${e.message}"
             } finally {
                 _isLoading.value = false
             }
@@ -114,21 +127,33 @@ class AppListViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 val packages = _selectedPackages.value
+                android.util.Log.d("HyperCtrl", "applyBatchRestriction appelé: ${packages.size} apps sélectionnées")
                 if (packages.isEmpty()) {
-                    onResult(false, "Aucune app sélectionnée")
+                    android.util.Log.d("HyperCtrl", "No app selected")
+                    onResult(false, "No app selected")
                     return@launch
                 }
-                val critical = packages.filter { SystemAppGuard.isCritical(it) }
-                if (critical.isNotEmpty()) {
-                    onResult(false, "Apps système protégées: ${critical.joinToString(", ")}")
+                val nonCritical = packages.filterNot { SystemAppGuard.isCritical(it) }
+                android.util.Log.d("HyperCtrl", "Non-critiques: ${nonCritical.size}, Critiques: ${packages.size - nonCritical.size}")
+                if (nonCritical.isEmpty()) {
+                    onResult(false, "Only protected system apps are selected")
                     return@launch
                 }
-                powerKeeperDb.setBatchRestriction(packages, state, delayMin)
+                powerKeeperDb.setBatchRestriction(nonCritical.toSet(), state, delayMin)
+                android.util.Log.d("HyperCtrl", "setBatchRestriction terminé")
                 refresh()
                 clearSelection()
-                onResult(true, "${packages.size} app(s) modifiée(s)")
+                val count = nonCritical.size
+                val criticalCount = packages.size - count
+                val message = if (criticalCount > 0) {
+                    "$count app(s) modified ($criticalCount protected system app(s) skipped)"
+                } else {
+                    "$count app(s) modified"
+                }
+                onResult(true, message)
             } catch (e: Exception) {
-                onResult(false, "Erreur: ${e.message}")
+                android.util.Log.e("HyperCtrl", "applyBatchRestriction error", e)
+                onResult(false, "Error: ${e.message}")
             }
         }
     }

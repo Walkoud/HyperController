@@ -32,18 +32,18 @@ sealed class TemplateAction {
 }
 
 enum class TemplateTarget(val label: String) {
-    ALL_USER_APPS("Toutes les apps utilisateur"),
-    COMMUNICATIONS("Messageries"),
-    GAMES("Jeux"),
-    SYSTEM_APPS("Apps système"),
-    SELECTED_PACKAGES("Packages spécifiques")
+    ALL_USER_APPS("All user apps"),
+    COMMUNICATIONS("Messaging apps"),
+    GAMES("Games"),
+    SYSTEM_APPS("System apps"),
+    SELECTED_PACKAGES("Selected packages")
 }
 
 object BuiltinTemplates {
     val UNCHAINED = Template(
         id = "builtin_unchained",
         name = "Unchained",
-        description = "Libère les apps sélectionnées de toute restriction MIUI",
+        description = "Frees selected apps from all MIUI restrictions",
         isBuiltin = true,
         target = TemplateTarget.SELECTED_PACKAGES,
         actions = listOf(
@@ -56,7 +56,7 @@ object BuiltinTemplates {
     val ANTI_KILL_GLOBAL = Template(
         id = "builtin_antikill",
         name = "Anti-Kill Global",
-        description = "Désactive l'agressivité du tueur de tâches MIUI",
+        description = "Disables the aggressiveness of the MIUI task killer",
         isBuiltin = true,
         target = TemplateTarget.SELECTED_PACKAGES,
         actions = listOf(
@@ -71,7 +71,7 @@ object BuiltinTemplates {
     val THERMAL_UNLOCK = Template(
         id = "builtin_thermal",
         name = "Thermal Unlock",
-        description = "Repousse les limites thermiques pour les performances",
+        description = "Pushes back thermal limits for performance",
         isBuiltin = true,
         target = TemplateTarget.SELECTED_PACKAGES,
         actions = listOf(

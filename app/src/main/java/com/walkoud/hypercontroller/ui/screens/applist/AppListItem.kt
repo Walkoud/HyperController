@@ -44,8 +44,7 @@ fun AppListItem(
 ) {
     Surface(
         modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         tonalElevation = if (isSelected) 4.dp else 1.dp
     ) {
@@ -65,12 +64,18 @@ fun AppListItem(
                 Icon(
                     painter = rememberDrawablePainter(app.icon),
                     contentDescription = null,
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clickable(onClick = onClick),
                     tint = Color.Unspecified
                 )
             }
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onClick)
+            ) {
                 Text(
                     text = app.appName,
                     style = MaterialTheme.typography.titleSmall,
@@ -87,7 +92,7 @@ fun AppListItem(
                 )
                 if (app.bgDelayMin > 0) {
                     Text(
-                        text = "Délai: ${app.bgDelayMin}min",
+                        text = "Delay: ${app.bgDelayMin}min",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

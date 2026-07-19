@@ -1,17 +1,21 @@
 package com.walkoud.hypercontroller.ui.screens.settings
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -20,10 +24,12 @@ import com.walkoud.hypercontroller.core.safety.SafetyLogger
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: SettingsViewModel = viewModel()
+    viewModel: SettingsViewModel = viewModel(),
+    templateViewModel: com.walkoud.hypercontroller.ui.screens.templates.TemplateViewModel = viewModel()
 ) {
     val settings by viewModel.settings.collectAsState()
     val safetyLogs by viewModel.safetyLogs.collectAsState()
+    val templates by templateViewModel.templates.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.checkRoot()
@@ -32,7 +38,7 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Paramètres") })
+            TopAppBar(title = { Text("Settings") })
         }
     ) { padding ->
         LazyColumn(
@@ -59,9 +65,9 @@ fun SettingsScreen(
                                     else MaterialTheme.colorScheme.error
                             )
                             Text(
-                                if (settings.rootAvailable) "Root disponible"
-                                else if (settings.rootChecked) "Root non disponible"
-                                else "Vérification..."
+                                if (settings.rootAvailable) "Root available"
+                                else if (settings.rootChecked) "Root not available"
+                                else "Checking..."
                             )
                         }
 
@@ -73,8 +79,8 @@ fun SettingsScreen(
                         }
 
                         Text(
-                            if (settings.dbAccessible) "Bases de données accessibles"
-                            else "Bases de données inaccessibles",
+                            if (settings.dbAccessible) "Databases accessible"
+                            else "Databases inaccessible",
                             style = MaterialTheme.typography.bodySmall,
                             color = if (settings.dbAccessible) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.error
@@ -88,7 +94,7 @@ fun SettingsScreen(
                         ) {
                             Icon(Icons.Default.Refresh, contentDescription = null)
                             Spacer(Modifier.width(4.dp))
-                            Text("Tester à nouveau")
+                            Text("Test again")
                         }
                     }
                 }
@@ -102,16 +108,62 @@ fun SettingsScreen(
 
                         Spacer(Modifier.height(8.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Auto-config pour nouvelles apps")
-                            Switch(
-                                checked = settings.autoConfigEnabled,
-                                onCheckedChange = { viewModel.setAutoConfig(it) }
-                            )
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Auto-config for new apps")
+                                    Text(
+                                        "Automatically applies a template to newly installed apps",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = settings.autoConfigEnabled,
+                                    onCheckedChange = { viewModel.setAutoConfig(it) }
+                                )
+                            }
+
+                            if (settings.autoConfigEnabled) {
+                                var expanded by remember { mutableStateOf(false) }
+                                val selectedTemplate = templates.find { it.id == settings.autoConfigTemplateId }
+
+                                ExposedDropdownMenuBox(
+                                    expanded = expanded,
+                                    onExpandedChange = { expanded = it }
+                                ) {
+                                    OutlinedTextField(
+                                        value = selectedTemplate?.name ?: "Choose a template...",
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("Template to apply") },
+                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                                        modifier = Modifier
+                                            .menuAnchor()
+                                            .fillMaxWidth()
+                                    )
+                                    ExposedDropdownMenu(
+                                        expanded = expanded,
+                                        onDismissRequest = { expanded = false }
+                                    ) {
+                                        templates.forEach { template ->
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(template.name + if (template.isBuiltin) " (built-in)" else "")
+                                                },
+                                                onClick = {
+                                                    viewModel.setAutoConfigTemplate(template.id)
+                                                    expanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         Row(
@@ -120,9 +172,9 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Kill after apply")
+                                Text("Restart after change")
                                 Text(
-                                    "Redémarre powerkeeper après chaque modification",
+                                    "Forces a powerkeeper service restart so changes take effect immediately",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -138,7 +190,7 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Thème sombre")
+                            Text("Dark theme")
                             Switch(
                                 checked = settings.darkTheme,
                                 onCheckedChange = { viewModel.setDarkTheme(it) }
@@ -156,16 +208,16 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Journal de sécurité",
+                            Text("Safety log",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold)
                             TextButton(onClick = { viewModel.refreshSafetyLogs() }) {
-                                Text("Rafraîchir")
+                                Text("Refresh")
                             }
                         }
 
                         if (safetyLogs.isEmpty()) {
-                            Text("Aucun événement",
+                            Text("No event",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         } else {
@@ -204,14 +256,31 @@ fun SettingsScreen(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("À propos", style = MaterialTheme.typography.titleMedium,
+                        Text("About", style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(4.dp))
                         Text("HyperController v1.0",
                             style = MaterialTheme.typography.bodyMedium)
-                        Text("Contrôle avancé des restrictions MIUI/HyperOS",
+                        Text("Advanced control of MIUI/HyperOS restrictions",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                        Spacer(Modifier.height(8.dp))
+
+                        val context = LocalContext.current
+                        OutlinedButton(
+                            onClick = {
+                                val intent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://github.com/Walkoud/HyperController")
+                                )
+                                context.startActivity(intent)
+                            }
+                        ) {
+                            Icon(Icons.Default.Code, contentDescription = null)
+                            Spacer(Modifier.width(4.dp))
+                            Text("View on GitHub")
+                        }
                     }
                 }
             }

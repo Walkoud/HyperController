@@ -33,25 +33,30 @@ fun TemplateEditor(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (template == null) "Nouveau template" else "Éditer") },
+                title = { Text(if (template == null) "New template" else "Edit") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    TextButton(onClick = {
-                        val t = Template(
-                            id = template?.id ?: UUID.randomUUID().toString(),
-                            name = name,
-                            description = description,
-                            isBuiltin = false,
-                            target = target,
-                            actions = actions
-                        )
-                        onSave(t)
-                    }) {
-                        Text("Sauvegarder")
+                    TextButton(
+                        onClick = {
+                            if (name.isNotBlank()) {
+                                val t = Template(
+                                    id = template?.id ?: UUID.randomUUID().toString(),
+                                    name = name,
+                                    description = description,
+                                    isBuiltin = false,
+                                    target = target,
+                                    actions = actions
+                                )
+                                onSave(t)
+                            }
+                        },
+                        enabled = name.isNotBlank()
+                    ) {
+                        Text("Save")
                     }
                 }
             )
@@ -67,7 +72,7 @@ fun TemplateEditor(
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Nom du template") },
+                label = { Text("Template name") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -79,7 +84,7 @@ fun TemplateEditor(
                 maxLines = 3
             )
 
-            Text("Cible", style = MaterialTheme.typography.titleSmall)
+            Text("Target", style = MaterialTheme.typography.titleSmall)
             TemplateTarget.entries.forEach { t ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -95,6 +100,9 @@ fun TemplateEditor(
             actions.forEachIndexed { index, action ->
                 ActionCard(
                     action = action,
+                    onUpdate = { updated ->
+                        actions = actions.toMutableList().also { it[index] = updated }
+                    },
                     onDelete = {
                         actions = actions.toMutableList().also { it.removeAt(index) }
                     }
@@ -110,27 +118,138 @@ fun TemplateEditor(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ActionCard(
     action: TemplateAction,
+    onUpdate: (TemplateAction) -> Unit,
     onDelete: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                val title = when (action) {
-                    is TemplateAction.SetRestriction -> "Restriction: ${action.state.label}"
-                    is TemplateAction.SetGlobalFeature -> "Global: ${action.key}=${action.value}"
-                    is TemplateAction.AddToWhitelist -> "Whitelist: ${action.listName}"
-                    is TemplateAction.KillProcess -> "Kill: ${action.processName}"
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    when (action) {
+                        is TemplateAction.SetRestriction -> {
+                            Text("Restriction", style = MaterialTheme.typography.bodyMedium)
+                        }
+                        is TemplateAction.SetGlobalFeature -> {
+                            Text("Global setting", style = MaterialTheme.typography.bodyMedium)
+                        }
+                        is TemplateAction.AddToWhitelist -> {
+                            Text("Whitelist", style = MaterialTheme.typography.bodyMedium)
+                        }
+                        is TemplateAction.KillProcess -> {
+                            Text("Kill process", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
                 }
-                Text(title, style = MaterialTheme.typography.bodyMedium)
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                }
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Supprimer")
+
+            Spacer(Modifier.height(8.dp))
+
+            when (action) {
+                is TemplateAction.SetRestriction -> {
+                    var expanded by remember { mutableStateOf(false) }
+                    var delayText by remember { mutableStateOf(action.delayMin.toString()) }
+
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = action.state.label,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Mode") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            RestrictionState.entries.forEach { state ->
+                                DropdownMenuItem(
+                                    text = { Text(state.label) },
+                                    onClick = {
+                                        onUpdate(action.copy(state = state))
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = delayText,
+                        onValueChange = { v ->
+                            delayText = v
+                            val delay = v.toIntOrNull() ?: -1
+                            onUpdate(action.copy(delayMin = delay))
+                        },
+                        label = { Text("Delay (min, -1 = immediate)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                is TemplateAction.SetGlobalFeature -> {
+                    var key by remember { mutableStateOf(action.key) }
+                    var value by remember { mutableStateOf(action.value) }
+
+                    OutlinedTextField(
+                        value = key,
+                        onValueChange = { k ->
+                            key = k
+                            onUpdate(action.copy(key = k))
+                        },
+                        label = { Text("Key") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { v ->
+                            value = v
+                            onUpdate(action.copy(value = v))
+                        },
+                        label = { Text("Value") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                is TemplateAction.AddToWhitelist -> {
+                    var listName by remember { mutableStateOf(action.listName) }
+
+                    OutlinedTextField(
+                        value = listName,
+                        onValueChange = { v ->
+                            listName = v
+                            onUpdate(action.copy(listName = v))
+                        },
+                        label = { Text("List name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                is TemplateAction.KillProcess -> {
+                    var processName by remember { mutableStateOf(action.processName) }
+
+                    OutlinedTextField(
+                        value = processName,
+                        onValueChange = { v ->
+                            processName = v
+                            onUpdate(action.copy(processName = v))
+                        },
+                        label = { Text("Process name") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }
@@ -144,33 +263,33 @@ private fun AddActionButton(onAdd: (TemplateAction) -> Unit) {
         TextButton(onClick = { expanded = true }) {
             Icon(Icons.Default.Add, contentDescription = null)
             Spacer(Modifier.width(4.dp))
-            Text("Ajouter une action")
+            Text("Add an action")
         }
 
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
-                text = { Text("SetRestriction — Appliquer un état") },
+                text = { Text("Restriction") },
                 onClick = {
                     onAdd(TemplateAction.SetRestriction(RestrictionState.NO_RESTRICT))
                     expanded = false
                 }
             )
             DropdownMenuItem(
-                text = { Text("SetGlobalFeature — Modifier un paramètre global") },
+                text = { Text("Global setting") },
                 onClick = {
-                    onAdd(TemplateAction.SetGlobalFeature("featureStatus", "false"))
+                    onAdd(TemplateAction.SetGlobalFeature("", ""))
                     expanded = false
                 }
             )
             DropdownMenuItem(
-                text = { Text("AddToWhitelist — Ajouter à une liste d'exemption") },
+                text = { Text("Add to whitelist") },
                 onClick = {
-                    onAdd(TemplateAction.AddToWhitelist("levelUtimateSpecialApps"))
+                    onAdd(TemplateAction.AddToWhitelist(""))
                     expanded = false
                 }
             )
             DropdownMenuItem(
-                text = { Text("KillProcess — Tuer un processus") },
+                text = { Text("Kill process") },
                 onClick = {
                     onAdd(TemplateAction.KillProcess())
                     expanded = false

@@ -31,8 +31,9 @@ class DbExecutor(private val sqliteBinary: String) {
     }
 
     fun execSQLBatch(dbPath: String, sqlList: List<String>) {
+        sqlList.forEach { validateSql(it) }
+
         val batch = sqlList.joinToString(";\n")
-        validateSql(batch)
 
         val containsForbidden = forbiddenPrefixes.any { prefix ->
             batch.uppercase().contains(prefix)

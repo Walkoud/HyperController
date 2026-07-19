@@ -21,6 +21,7 @@ import com.walkoud.hypercontroller.ui.theme.AppColors
 @Composable
 fun AppDetailScreen(
     pkgName: String,
+    appListViewModel: com.walkoud.hypercontroller.ui.screens.applist.AppListViewModel,
     onBack: () -> Unit,
     viewModel: AppDetailViewModel = viewModel()
 ) {
@@ -41,7 +42,7 @@ fun AppDetailScreen(
                 title = { Text(appInfo?.appName ?: pkgName) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -73,7 +74,7 @@ fun AppDetailScreen(
                         Icon(Icons.Default.Warning, contentDescription = null,
                             tint = MaterialTheme.colorScheme.error)
                         Text(
-                            "App système critique — modification bloquée",
+                            "Critical system app — modification blocked",
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -84,7 +85,7 @@ fun AppDetailScreen(
                     colors = CardDefaults.cardColors(containerColor = AppColors.miuiAuto.copy(alpha = 0.15f))
                 ) {
                     Text(
-                        "App système sensible — soyez prudent",
+                        "Sensitive system app — be careful",
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -97,12 +98,12 @@ fun AppDetailScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Informations", style = MaterialTheme.typography.titleMedium)
+                        Text("Information", style = MaterialTheme.typography.titleMedium)
                         DetailRow("Package", app.pkgName)
-                        DetailRow("Type", if (app.isSystemApp) "Système" else "Utilisateur")
-                        DetailRow("Catégorie", app.category.label)
-                        DetailRow("État actuel", app.currentState.label)
-                        if (app.bgDelayMin > 0) DetailRow("Délai", "${app.bgDelayMin} min")
+                        DetailRow("Type", if (app.isSystemApp) "System" else "User")
+                        DetailRow("Category", app.category.label)
+                        DetailRow("Current state", app.currentState.label)
+                        if (app.bgDelayMin > 0) DetailRow("Delay", "${app.bgDelayMin} min")
                     }
                 }
             }
@@ -113,10 +114,14 @@ fun AppDetailScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("Modifier la restriction", style = MaterialTheme.typography.titleMedium)
+                        Text("Change restriction", style = MaterialTheme.typography.titleMedium)
 
-                        var selectedState by remember { mutableStateOf(appInfo?.currentState ?: RestrictionState.MIUI_AUTO) }
-                        var delayText by remember { mutableStateOf((appInfo?.bgDelayMin ?: -1).toString()) }
+                        var selectedState by remember(appInfo?.currentState) {
+                            mutableStateOf(appInfo?.currentState ?: RestrictionState.MIUI_AUTO)
+                        }
+                        var delayText by remember(appInfo?.bgDelayMin) {
+                            mutableStateOf((appInfo?.bgDelayMin ?: -1).toString())
+                        }
 
                         RestrictionState.entries.forEach { state ->
                             Row(
@@ -139,19 +144,21 @@ fun AppDetailScreen(
                         OutlinedTextField(
                             value = delayText,
                             onValueChange = { delayText = it },
-                            label = { Text("Délai avant kill (minutes)") },
+                            label = { Text("Delay before kill (minutes)") },
                             modifier = Modifier.fillMaxWidth(),
-                            supportingText = { Text(" -1 = immédiat, 0-1440 = minutes") }
+                            supportingText = { Text(" -1 = immediate, 0-1440 = minutes") }
                         )
 
                         Button(
                             onClick = {
                                 val delay = delayText.toIntOrNull() ?: -1
-                                viewModel.setRestriction(selectedState, delay)
+                                viewModel.setRestriction(selectedState, delay) {
+                                    appListViewModel.refresh()
+                                }
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Appliquer")
+                            Text("Apply")
                         }
                     }
                 }
@@ -163,7 +170,7 @@ fun AppDetailScreen(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Configuration cloud (avancé)", style = MaterialTheme.typography.titleMedium)
+                        Text("Cloud config (advanced)", style = MaterialTheme.typography.titleMedium)
                         config.bgData?.let { DetailRow("bgData", it) }
                         config.bgLocation?.let { DetailRow("bgLocation", it) }
                         config.kDelay?.let { DetailRow("k_delay", it) }

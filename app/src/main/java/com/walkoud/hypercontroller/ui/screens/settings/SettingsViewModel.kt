@@ -15,6 +15,7 @@ data class SettingsState(
     val rootAvailable: Boolean = false,
     val rootChecked: Boolean = false,
     val autoConfigEnabled: Boolean = false,
+    val autoConfigTemplateId: String = "",
     val killAfterApply: Boolean = true,
     val darkTheme: Boolean = true,
     val dbAccessible: Boolean = false,
@@ -28,6 +29,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private val _settings = MutableStateFlow(SettingsState(
         autoConfigEnabled = prefs.getBoolean("auto_config", false),
+        autoConfigTemplateId = prefs.getString("auto_config_template_id", "") ?: "",
         killAfterApply = prefs.getBoolean("kill_after_apply", true),
         darkTheme = prefs.getBoolean("dark_theme", true)
     ))
@@ -53,7 +55,25 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setAutoConfig(enabled: Boolean) {
         _settings.value = _settings.value.copy(autoConfigEnabled = enabled)
-        prefs.edit().putBoolean("auto_config", enabled).apply()
+        prefs.edit().putBoolean("auto_config", enabled).commit()
+        android.util.Log.d("HyperCtrl", "Auto-config changé: $enabled")
+        if (enabled) {
+            android.util.Log.d("HyperCtrl", "Démarrage du service AutoConfigService...")
+            com.walkoud.hypercontroller.service.AutoConfigService.startIfEnabled(getApplication())
+        } else {
+            android.util.Log.d("HyperCtrl", "Arrêt du service AutoConfigService...")
+            com.walkoud.hypercontroller.service.AutoConfigService.stopService(getApplication())
+        }
+    }
+
+    fun setAutoConfigTemplate(templateId: String) {
+        _settings.value = _settings.value.copy(autoConfigTemplateId = templateId)
+        prefs.edit().putString("auto_config_template_id", templateId).commit()
+        // Redémarrer le service si actif pour prendre en compte le nouveau template
+        if (_settings.value.autoConfigEnabled) {
+            com.walkoud.hypercontroller.service.AutoConfigService.stopService(getApplication())
+            com.walkoud.hypercontroller.service.AutoConfigService.startIfEnabled(getApplication())
+        }
     }
 
     fun setKillAfterApply(enabled: Boolean) {
